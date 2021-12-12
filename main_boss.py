@@ -35,6 +35,8 @@ class spaceship:
         self.right = False
         self.hp = 3
         self.hp3_draw = PhotoImage(file='hp3.png')
+        self.hp2_draw = PhotoImage(file='hp2.png')
+        self.hp1_draw = PhotoImage(file='hp1.png')
         # self.autofire = False
         canv.bind("<Left>", self.moveLeft)
         canv.bind("<Right>", self.moveRight)
@@ -55,7 +57,13 @@ class spaceship:
         if self.timer == 0:
             self.tPeriod += 1
             self.tPeriod %= 2
-        canv.create_image(self.x + 25, self.y - 20, image=self.hp3_draw, anchor=NW)
+        if self.hp == 3:
+            canv.create_image(self.x + 25, self.y - 20, image=self.hp3_draw, anchor=NW)
+        elif self.hp == 2:
+            canv.create_image(self.x + 25, self.y - 20, image=self.hp2_draw, anchor=NW)
+        elif self.hp == 1:
+            canv.create_image(self.x + 25, self.y - 20, image=self.hp1_draw, anchor=NW)
+
 
     def update(self):
         # if self.hp > 0:
@@ -209,7 +217,7 @@ class boss_bullet:
         self.draw()
         self.x += self.xVel
         self.y += self.yVel
-        if self.y + 25 >= canv.winfo_height() or self.y <= 0:
+        if self.y >= 760:
             self.dead = True
 
 class explosion:
