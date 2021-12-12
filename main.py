@@ -13,10 +13,11 @@ otherFont = tkinter.font.Font(family="OCR-A II", size=20)
 menuFont = tkinter.font.Font(family="Fixedsys", size=30)
 canv.pack(fill=BOTH, expand=1)
 
-
+explosions = []
 aliens = []
 wavesSurvived = 0
 shots = []
+enemy_shots = []
 dead = False
 # canv = Canvas(root, bg="blue", height=760, width=540)
 # filename = PhotoImage(file="D:\\python\\lopatich_hood\\star wars\\space11.png")
@@ -76,6 +77,7 @@ class spaceship:
             if i.x + 50 >= self.x and i.x <= self.x + 50 and i.y + 50 >= self.y \
                 and i.y <= self.y + 50:
                 self.hp = -1
+                explosions.append(explosion(self.x + 7.5, self.y))
 
     def moveLeft(self, event):
         self.left = True
@@ -127,10 +129,11 @@ class bullet:
 
             if i.x + 50 >= self.x and i.x <= self.x + 25 and i.y + 50 >= self.y \
                and i.y <= self.y + 40:
+                explosions.append(explosion(self.x + 7.5, self.y))
                 if self.laser:
-                    i.hp -= 1
+                    i.hp -= 2
                 if self.bullet:
-                    i.hp -= 0.5
+                    i.hp -= 1
                 self.dead = True
 
     def update(self):
@@ -144,8 +147,40 @@ class bullet:
 
         self.checkCollisions()
 
+class explosion:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.dead = False
+        self.sprites = [PhotoImage(file="explosion1.png"),
+                        PhotoImage(file="explosion2.png"),
+                        PhotoImage(file="explosion4.png"),
+                        PhotoImage(file="explosion6.png"),
+                        PhotoImage(file="explosion7.png"),
+                        PhotoImage(file="explosion8.png"),
+                        PhotoImage(file="explosion11.png"),
+                        PhotoImage(file="explosion13.png"),
+                        PhotoImage(file="explosion14.png"),
+                        PhotoImage(file="explosion16.png"),
+                        PhotoImage(file="explosion17.png"),
+                        PhotoImage(file="explosion19.png"),
+                        PhotoImage(file="explosion22.png"),
+                        PhotoImage(file="explosion23.png"),]
+        self.timer = 0
+        # os.system("start Explosion.wav")
 
-class alien():
+    def draw(self):
+        canv.create_image(self.x, self.y - 25,
+                          image=self.sprites[self.timer % len(self.sprites)],
+                          anchor=NW)
+        self.timer += 1
+        # Killing the animation
+        if self.timer >= len(self.sprites):
+            self.dead = True
+
+
+
+class alien:
     def __init__(self, x, y, t):
         self.x = x
         self.y = y
@@ -153,15 +188,13 @@ class alien():
         self.dead = False
         # One-hit wonder alien, no attack
         if self.t == 1:
-            self.sprites = [PhotoImage(file="1HitAlien1.gif"),
-                            PhotoImage(file="1HitAlien2.gif")]
+            self.view = PhotoImage(file="enemy1.png"),
             self.period = 15
             self.moveSpeed = 3
             self.hp = 1
         # 3-hit alien, no attack
         if self.t == 2:
-            self.sprites = [PhotoImage(file="MultiHitAlien1.gif"),
-                            PhotoImage(file="MultiHitAlien2.gif")]
+            self.view = PhotoImage(file="enemy2.png")
             self.period = 12
             self.moveSpeed = 3
             self.hp = 2.5
@@ -172,13 +205,13 @@ class alien():
         self.moveNext = True
     def draw(self):
         canv.create_image(self.x, self.y - 25,
-                          image=self.sprites[self.tPeriod],
+                          image=self.view,
                           anchor=NW)
         self.timer += 1
         self.timer %= self.period
         if self.timer == 0:
             self.tPeriod += 1
-            self.tPeriod %= len(self.sprites)
+            self.tPeriod %= 2
     def update(self):
         self.draw()
         self.x += self.xVel
@@ -188,13 +221,46 @@ class alien():
             self.y += 50
         if self.hp <= 0:
             self.dead = True
+        if self.tPeriod == 1 and self.timer == 1:
+            self.spawnBullet()
+
+    def spawnBullet(self):
+        if self.hp > 0:
+            global enemy_shots
+            if random.random() < 0.05:
+                enemy_shots.append(enemy_bullet(self.x + 25, self.y + 50, 0, 7))
+
+
+
+class enemy_bullet:
+    def __init__(self, x, y, xVel, yVel):
+        self.x = x
+        self.y = y
+        self.xVel = xVel
+        self.yVel = yVel
+        self.dead = False
+        self.view = PhotoImage(file='laser (5) (1).png')
+
+    def draw(self):
+        canv.create_image(self.x, self.y,
+                          image=self.view,
+                          anchor=NW)
+
+    def update(self):
+        self.draw()
+        self.x += self.xVel
+        self.y += self.yVel
+        if self.y >= 760:
+            self.dead = True
+
+
 # Make a 8rowx6column grid of aliens.
 def spawnAliens():
     global p
     global aliens
     global wavesSurvived
-    for i in range(0, 550, 50):
-        for j in range(0, 350, 50):
+    for i in range(0, 550, 70):
+        for j in range(0, 350, 60):
             if wavesSurvived <= 2:
                 aliens.append(alien(i, j, 1))
             elif wavesSurvived <= 4:
@@ -223,6 +289,16 @@ def drawShots():
             todes.append(i)
     for i in range(len(todes)):
         shots.pop(todes[i] - i)
+
+def enemy_drawShots():
+    for i in range(len(enemy_shots)):
+        try:
+            enemy_shots[i].update()
+            if enemy_shots[i].dead:
+                del enemy_shots[i]
+        except:
+            pass
+
 def drawAliens():
     todel = []
     for i in range(len(aliens)):
@@ -237,6 +313,14 @@ def drawAliens():
 def drawBackground():
     pass
 
+def drawExplosions():
+    for i in range(len(explosions)):
+        try:
+            explosions[i].draw()
+            if explosions[i].dead:
+                del explosions[i]
+        except:
+            pass
 
 def draw():
     canv.delete("all")
@@ -244,6 +328,8 @@ def draw():
     p.update()
     drawShots()
     drawAliens()
+    drawExplosions()
+    enemy_drawShots()
     if len(aliens) == 0:
         spawnAliens()
     root.after(25, draw)
